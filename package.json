@@ -15,9 +15,16 @@
     "@rollup/plugin-node-resolve": "^11.2.1",
     "@rollup/plugin-typescript": "^8.2.1",
     "@types/node": "^14.14.37",
+    "@types/node-fetch": "^2.5.10",
+    "@types/string.prototype.matchall": "^4.0.0",
     "obsidian": "^0.12.0",
     "rollup": "^2.32.1",
+    "rollup-plugin-json": "^4.0.0",
     "tslib": "^2.2.0",
     "typescript": "^4.2.4"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.1",
+    "string.prototype.matchall": "^4.0.5"
   }
 }
