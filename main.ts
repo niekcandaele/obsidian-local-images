@@ -68,9 +68,12 @@ export default class MyPlugin extends Plugin {
     const files = this.app.vault.getFiles();
 
     for (const file of files) {
-      const fileContent = await this.app.vault.read(file);
-      // @ts-expect-error This uses the shim for matchall
-      const matches = fileContent.matchAll(mdImageRegex);
+      let fileContent = await this.app.vault.read(file);
+      const matches: IterableIterator<RegExpMatchArray> =
+        // We disable the error so type checking doesnt work in the next line
+        // However, by declaring the proper type above, we have type safety in the rest of the code
+        // @ts-expect-error This uses the shim for matchall
+        fileContent.matchAll(mdImageRegex);
       const filePath = this.app.fileManager.getNewFileParent(file.path);
       const imgFolderPath = `${filePath.path}/img`;
       try {
@@ -82,30 +85,51 @@ export default class MyPlugin extends Plugin {
       }
 
       for (const match of matches) {
+        // Ignore any links that are a different protocol than http (for now..)
+        if (!/^http/.test(match.groups.filename)) {
+          continue;
+        }
         await this.downloadAndSaveFile(match.groups.filename, imgFolderPath);
+        fileContent = this.replaceInText(
+          fileContent,
+          match[0],
+          match.groups.filename
+        );
+        await this.app.vault.modify(file, fileContent);
       }
     }
   }
 
-  private async replaceInText(content: string) {
-    //content.replace('aa', 'bb')
+  /**
+   * @param content The full text body to search
+   * @param toReplace Search string, this is what will be replaced
+   * @param url The HTTP url to the image source
+   * @param path The local filepath to the new image
+   */
+  private replaceInText(content: string, toReplace: string, url: string) {
+    const newLink = `![](${this.getFileName(url)})`;
+    return content.split(toReplace).join(newLink);
   }
 
   private async downloadAndSaveFile(url: string, outputPath: string) {
     const imageRes = await fetch(url);
     const imageData = await imageRes.arrayBuffer();
-
-    // File names cannot contain / or \
-    // So we try to get the image name from the last part of the url
-    const fileName = url.split("/").last().split("\\").last();
-
     try {
-      await this.app.vault.createBinary(`${outputPath}/${fileName}`, imageData);
+      await this.app.vault.createBinary(
+        `${outputPath}/${this.getFileName(url)}`,
+        imageData
+      );
     } catch (error) {
       if (!error.message.contains("File already exists")) {
         throw error;
       }
     }
+  }
+
+  // File names cannot contain / or \
+  // So we try to get the image name from the last part of the url
+  private getFileName(url: string) {
+    return url.split("/").last().split("\\").last();
   }
 }
 
