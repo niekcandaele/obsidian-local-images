@@ -8,6 +8,8 @@ import {
   Setting,
   TFolder,
 } from "obsidian";
+import { sanitizeUrlToFileName } from "src/sanitizeUrlToFileName";
+import { replaceInText } from "src/replaceInText";
 import { shim } from "string.prototype.matchall";
 
 shim();
@@ -89,47 +91,28 @@ export default class MyPlugin extends Plugin {
         if (!/^http/.test(match.groups.filename)) {
           continue;
         }
-        await this.downloadAndSaveFile(match.groups.filename, imgFolderPath);
-        fileContent = this.replaceInText(
-          fileContent,
-          match[0],
-          match.groups.filename
+        const newFilePath = await this.downloadAndSaveFile(
+          match.groups.filename,
+          imgFolderPath
         );
+        fileContent = replaceInText(fileContent, match[0], newFilePath);
         await this.app.vault.modify(file, fileContent);
       }
     }
   }
 
-  /**
-   * @param content The full text body to search
-   * @param toReplace Search string, this is what will be replaced
-   * @param url The HTTP url to the image source
-   * @param path The local filepath to the new image
-   */
-  private replaceInText(content: string, toReplace: string, url: string) {
-    const newLink = `![](${this.getFileName(url)})`;
-    return content.split(toReplace).join(newLink);
-  }
-
   private async downloadAndSaveFile(url: string, outputPath: string) {
     const imageRes = await fetch(url);
     const imageData = await imageRes.arrayBuffer();
+    const filePath = `${outputPath}/${sanitizeUrlToFileName(url)}`;
     try {
-      await this.app.vault.createBinary(
-        `${outputPath}/${this.getFileName(url)}`,
-        imageData
-      );
+      await this.app.vault.createBinary(filePath, imageData);
+      return filePath;
     } catch (error) {
       if (!error.message.contains("File already exists")) {
         throw error;
       }
     }
-  }
-
-  // File names cannot contain / or \
-  // So we try to get the image name from the last part of the url
-  private getFileName(url: string) {
-    return url.split("/").last().split("\\").last();
   }
 }
 
