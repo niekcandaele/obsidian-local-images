@@ -5,6 +5,7 @@ import {
   Plugin,
   PluginSettingTab,
   Setting,
+  TFile,
   TFolder,
 } from "obsidian";
 import { sanitizeUrlToFileName } from "./sanitizeUrlToFileName";
@@ -61,8 +62,17 @@ export default class LocalImagesPlugin extends Plugin {
 
     this.addSettingTab(new SampleSettingTab(this.app, this));
   }
-  displayError(error: Error | string): void {
-    new Notice(error.toString());
+  displayError(error: Error | string, file?: TFile): void {
+    if (file) {
+      new Notice(
+        `LocalImages: Error while handling file ${
+          file.name
+        }, ${error.toString()}`
+      );
+    } else {
+      new Notice(error.toString());
+    }
+
     console.error(`LocalImages: error: ${error}`);
   }
 

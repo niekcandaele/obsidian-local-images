@@ -4,6 +4,7 @@ import type LocalImagesPlugin from "./main";
 import { replaceInText } from "./replaceInText";
 import { sanitizeUrlToFileName } from "./sanitizeUrlToFileName";
 import { saveFile } from "./saveFile";
+import { tryCreateFolder } from "./tryCreateFolder";
 
 const mdImageRegex =
   /!\[[^\]]*\]\((?<filename>.*?)(?=\"|\))(?<optionalpart>\".*\")?\)/g;
@@ -17,13 +18,6 @@ export async function run(plugin: LocalImagesPlugin, file: TFile) {
     fileContent.matchAll(mdImageRegex);
   const filePath = plugin.app.fileManager.getNewFileParent(file.path);
   const imgFolderPath = `${filePath.path === "/" ? "" : filePath.path}/img`;
-  try {
-    await plugin.app.vault.createFolder(imgFolderPath);
-  } catch (error) {
-    if (!error.message.contains("Folder already exists")) {
-      throw error;
-    }
-  }
 
   for (const match of matches) {
     // Ignore any links that are a different protocol than http (for now..)
@@ -34,16 +28,22 @@ export async function run(plugin: LocalImagesPlugin, file: TFile) {
       match.groups.filename
     )}`;
 
-    const imgData = await downloadImage(match.groups.filename);
-    await saveFile(plugin.app, filePath, imgData);
-    fileContent = replaceInText(
-      fileContent,
-      match[0],
-      match.groups.filename,
-      filePath
-    );
+    try {
+      const imgData = await downloadImage(match.groups.filename);
+      await tryCreateFolder(plugin, imgFolderPath);
+      await saveFile(plugin.app, filePath, imgData);
+      fileContent = replaceInText(
+        fileContent,
+        match[0],
+        match.groups.filename,
+        filePath
+      );
+      await plugin.app.vault.modify(file, fileContent);
+    } catch (error) {
+      plugin.displayError(error, file);
+      continue;
+    }
   }
-  await plugin.app.vault.modify(file, fileContent);
 }
 
 export async function runAll(plugin: LocalImagesPlugin) {
