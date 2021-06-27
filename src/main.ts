@@ -8,8 +8,8 @@ import {
   Setting,
   TFolder,
 } from "obsidian";
-import { sanitizeUrlToFileName } from "src/sanitizeUrlToFileName";
-import { replaceInText } from "src/replaceInText";
+import { sanitizeUrlToFileName } from "./sanitizeUrlToFileName";
+import { replaceInText } from "./replaceInText";
 import { shim } from "string.prototype.matchall";
 
 shim();
@@ -95,7 +95,12 @@ export default class MyPlugin extends Plugin {
           match.groups.filename,
           imgFolderPath
         );
-        fileContent = replaceInText(fileContent, match[0], newFilePath);
+        fileContent = replaceInText(
+          fileContent,
+          match[0],
+          match.groups.filename,
+          newFilePath
+        );
         await this.app.vault.modify(file, fileContent);
       }
     }
