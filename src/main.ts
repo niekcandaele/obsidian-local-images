@@ -1,4 +1,3 @@
-import fetch from "node-fetch";
 import {
   App,
   Modal,
@@ -11,11 +10,9 @@ import {
 import { sanitizeUrlToFileName } from "./sanitizeUrlToFileName";
 import { replaceInText } from "./replaceInText";
 import { shim } from "string.prototype.matchall";
+import { run } from "./run";
 
 shim();
-
-const mdImageRegex =
-  /!\[[^\]]*\]\((?<filename>.*?)(?=\"|\))(?<optionalpart>\".*\")?\)/g;
 
 interface MyPluginSettings {
   mySetting: string;
@@ -25,7 +22,7 @@ const DEFAULT_SETTINGS: MyPluginSettings = {
   mySetting: "default",
 };
 
-export default class MyPlugin extends Plugin {
+export default class LocalImagesPlugin extends Plugin {
   settings: MyPluginSettings;
 
   async onload() {
@@ -43,7 +40,7 @@ export default class MyPlugin extends Plugin {
       id: "download-images",
       name: "Download images locally",
       callback: async () => {
-        await this.run();
+        await run(this.app);
       },
     });
 
@@ -65,60 +62,6 @@ export default class MyPlugin extends Plugin {
   async saveSettings() {
     await this.saveData(this.settings);
   }
-
-  private async run() {
-    const files = this.app.vault.getFiles();
-
-    for (const file of files) {
-      let fileContent = await this.app.vault.read(file);
-      const matches: IterableIterator<RegExpMatchArray> =
-        // We disable the error so type checking doesnt work in the next line
-        // However, by declaring the proper type above, we have type safety in the rest of the code
-        // @ts-expect-error This uses the shim for matchall
-        fileContent.matchAll(mdImageRegex);
-      const filePath = this.app.fileManager.getNewFileParent(file.path);
-      const imgFolderPath = `${filePath.path}/img`;
-      try {
-        await this.app.vault.createFolder(imgFolderPath);
-      } catch (error) {
-        if (!error.message.contains("Folder already exists")) {
-          throw error;
-        }
-      }
-
-      for (const match of matches) {
-        // Ignore any links that are a different protocol than http (for now..)
-        if (!/^http/.test(match.groups.filename)) {
-          continue;
-        }
-        const newFilePath = await this.downloadAndSaveFile(
-          match.groups.filename,
-          imgFolderPath
-        );
-        fileContent = replaceInText(
-          fileContent,
-          match[0],
-          match.groups.filename,
-          newFilePath
-        );
-        await this.app.vault.modify(file, fileContent);
-      }
-    }
-  }
-
-  private async downloadAndSaveFile(url: string, outputPath: string) {
-    const imageRes = await fetch(url);
-    const imageData = await imageRes.arrayBuffer();
-    const filePath = `${outputPath}/${sanitizeUrlToFileName(url)}`;
-    try {
-      await this.app.vault.createBinary(filePath, imageData);
-      return filePath;
-    } catch (error) {
-      if (!error.message.contains("File already exists")) {
-        throw error;
-      }
-    }
-  }
 }
 
 class SampleModal extends Modal {
@@ -138,9 +81,9 @@ class SampleModal extends Modal {
 }
 
 class SampleSettingTab extends PluginSettingTab {
-  plugin: MyPlugin;
+  plugin: LocalImagesPlugin;
 
-  constructor(app: App, plugin: MyPlugin) {
+  constructor(app: App, plugin: LocalImagesPlugin) {
     super(app, plugin);
     this.plugin = plugin;
   }
