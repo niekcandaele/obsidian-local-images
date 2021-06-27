@@ -11,19 +11,20 @@ import { sanitizeUrlToFileName } from "./sanitizeUrlToFileName";
 import { replaceInText } from "./replaceInText";
 import { shim } from "string.prototype.matchall";
 import { run, runAll } from "./run";
+import safeRegex from "safe-regex";
 
 shim();
 
-interface MyPluginSettings {
-  mySetting: string;
+export interface ISettings {
+  include: string;
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
-  mySetting: "default",
+const DEFAULT_SETTINGS: ISettings = {
+  include: "*.md",
 };
 
 export default class LocalImagesPlugin extends Plugin {
-  settings: MyPluginSettings;
+  settings: ISettings;
 
   async onload() {
     console.log("loading plugin");
@@ -37,7 +38,7 @@ export default class LocalImagesPlugin extends Plugin {
       name: "Download images locally for all your notes",
       callback: async () => {
         try {
-          await runAll(this.app);
+          await runAll(this);
         } catch (error) {
           this.displayError(error);
         }
@@ -54,7 +55,7 @@ export default class LocalImagesPlugin extends Plugin {
           return this.displayError("Please select a file first");
         }
 
-        await run(this.app, currentFile);
+        await run(this, currentFile);
       },
     });
 
@@ -70,11 +71,19 @@ export default class LocalImagesPlugin extends Plugin {
   }
 
   async loadSettings() {
+    console.log("loading settings");
+
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
   }
 
   async saveSettings() {
-    await this.saveData(this.settings);
+    console.log("saving settings");
+
+    try {
+      await this.saveData(this.settings);
+    } catch (error) {
+      this.displayError(error);
+    }
   }
 }
 
@@ -110,17 +119,21 @@ class SampleSettingTab extends PluginSettingTab {
     containerEl.createEl("h2", { text: "Local images" });
 
     new Setting(containerEl)
-      .setName("Setting #1")
-      .setDesc("It's a secret")
+      .setName("Include")
+      .setDesc(
+        "Include only files matching this regex pattern when running on all notes."
+      )
       .addText((text) =>
-        text
-          .setPlaceholder("Enter your secret")
-          .setValue("")
-          .onChange(async (value) => {
-            console.log("Secret: " + value);
-            this.plugin.settings.mySetting = value;
-            await this.plugin.saveSettings();
-          })
+        text.setValue(this.plugin.settings.include).onChange(async (value) => {
+          if (!safeRegex(value)) {
+            this.plugin.displayError(
+              "Unsafe regex! https://www.npmjs.com/package/safe-regex"
+            );
+            return;
+          }
+          this.plugin.settings.include = value;
+          await this.plugin.saveSettings();
+        })
       );
   }
 }
