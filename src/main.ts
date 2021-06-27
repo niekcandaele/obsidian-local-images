@@ -30,10 +30,6 @@ export default class LocalImagesPlugin extends Plugin {
 
     await this.loadSettings();
 
-    this.addRibbonIcon("dice", "Sample Plugin", () => {
-      new Notice("This is a notice!");
-    });
-
     this.addStatusBarItem().setText("Status Bar Text");
 
     this.addCommand({
