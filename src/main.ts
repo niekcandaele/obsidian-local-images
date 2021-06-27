@@ -10,7 +10,7 @@ import {
 import { sanitizeUrlToFileName } from "./sanitizeUrlToFileName";
 import { replaceInText } from "./replaceInText";
 import { shim } from "string.prototype.matchall";
-import { run } from "./run";
+import { run, runAll } from "./run";
 
 shim();
 
@@ -37,18 +37,36 @@ export default class LocalImagesPlugin extends Plugin {
     this.addStatusBarItem().setText("Status Bar Text");
 
     this.addCommand({
+      id: "download-images-all",
+      name: "Download images locally for all your notes",
+      callback: async () => {
+        try {
+          await runAll(this.app);
+        } catch (error) {
+          this.displayError(error);
+        }
+      },
+    });
+
+    this.addCommand({
       id: "download-images",
       name: "Download images locally",
       callback: async () => {
-        await run(this.app);
+        const currentFile = this.app.workspace.getActiveFile();
+
+        if (!currentFile) {
+          return this.displayError("Please select a file first");
+        }
+
+        await run(this.app, currentFile);
       },
     });
 
     this.addSettingTab(new SampleSettingTab(this.app, this));
-
-    this.registerInterval(
-      window.setInterval(() => console.log("setInterval"), 5 * 60 * 1000)
-    );
+  }
+  displayError(message: string): void {
+    new Notice(message);
+    console.log(`local images error: ${message}`);
   }
 
   onunload() {
