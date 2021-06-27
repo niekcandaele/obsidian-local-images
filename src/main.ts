@@ -64,9 +64,9 @@ export default class LocalImagesPlugin extends Plugin {
 
     this.addSettingTab(new SampleSettingTab(this.app, this));
   }
-  displayError(message: string): void {
-    new Notice(message);
-    console.log(`local images error: ${message}`);
+  displayError(error: Error | string): void {
+    new Notice(error.toString());
+    console.error(`LocalImages: error: ${error}`);
   }
 
   onunload() {
