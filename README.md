@@ -9,7 +9,7 @@ This plugin will respect your settings of where new files are saved. Obsidian se
 ## Development
 
 ```
-# Start the bunlder in watch mode
+# Start the bundler in watch mode
 npm run dev
 
 # It's useful to set a symlink so you don't have to copy files over constantly

@@ -38,11 +38,16 @@ export async function run(plugin: LocalImagesPlugin, file: TFile) {
         match.groups.filename,
         filePath
       );
-      await plugin.app.vault.modify(file, fileContent);
     } catch (error) {
       plugin.displayError(error, file);
       continue;
     }
+  }
+
+  try {
+    await plugin.app.vault.modify(file, fileContent);
+  } catch (error) {
+    plugin.displayError(error, file);
   }
 }
 
