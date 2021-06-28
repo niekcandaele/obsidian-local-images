@@ -1,10 +1,10 @@
 {
-	"id": "obsidian-local-images",
-	"name": "Local images",
-	"version": "1.0.1",
-	"minAppVersion": "0.9.12",
-	"description": "Searches your notes for hotlinked images, downloads and saves them",
-	"author": "catalysm",
-	"authorUrl": "https://github.com/niekcandaele/obsidian-local-images",
-	"isDesktopOnly": true
+  "id": "obsidian-local-images",
+  "name": "Local images",
+  "version": "0.13.0",
+  "minAppVersion": "0.9.12",
+  "description": "Searches your notes for hotlinked images, downloads and saves them",
+  "author": "catalysm",
+  "authorUrl": "https://github.com/niekcandaele/obsidian-local-images",
+  "isDesktopOnly": true
 }
